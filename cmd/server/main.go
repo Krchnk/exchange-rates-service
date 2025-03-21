@@ -24,7 +24,7 @@ func main() {
 	logger := logger.NewLogger()
 	logger.WithField("config", cfg).Info("configuration loaded")
 
-	store, err := postgres.NewStorage(cfg.DBConfig)
+	store, err := postgres.NewStorage(cfg.DBConfig, logger)
 	if err != nil {
 		logger.WithError(err).Fatal("failed to connect to database")
 	}
