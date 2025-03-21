@@ -38,7 +38,13 @@ func main() {
 	}
 
 	go func() {
-		if err := server.Start(cfg.GRPCPort); err != nil {
+		// Используем GRPC_PORT из конфигурации
+		port := cfg.GRPCPort
+		if port == "" {
+			port = ":50051" // Значение по умолчанию
+			logger.Warn("GRPC_PORT not set, defaulting to :50051")
+		}
+		if err := server.Start(port); err != nil {
 			logger.WithError(err).Fatal("failed to start gRPC server")
 		}
 	}()
