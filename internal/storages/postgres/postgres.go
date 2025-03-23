@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -18,8 +20,33 @@ func NewStorage(cfg struct {
 	Password string
 	DBName   string
 }, logger *logrus.Logger) (*Storage, error) {
-	connStr := "host=" + cfg.Host + " port=" + cfg.Port + " user=" + cfg.User +
-		" password=" + cfg.Password + " dbname=" + cfg.DBName + " sslmode=disable"
+	// Читаем дополнительные параметры из переменных окружения
+	sslMode := "verify-full" // Значение по умолчанию
+	if envSSLMode := os.Getenv("DB_SSLMODE"); envSSLMode != "" {
+		sslMode = envSSLMode
+	}
+
+	sslRootCert := ""
+	if envSSLRootCert := os.Getenv("DB_SSLROOTCERT"); envSSLRootCert != "" {
+		sslRootCert = envSSLRootCert
+	}
+
+	targetSessionAttrs := "read-write" // Значение по умолчанию
+	if envTargetSessionAttrs := os.Getenv("DB_TARGET_SESSION_ATTRS"); envTargetSessionAttrs != "" {
+		targetSessionAttrs = envTargetSessionAttrs
+	}
+
+	// Формируем строку подключения с учётом SSL
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s target_session_attrs=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, sslMode, targetSessionAttrs,
+	)
+
+	// Если указан сертификат, добавляем его в строку подключения
+	if sslRootCert != "" {
+		connStr += fmt.Sprintf(" sslrootcert=%s", sslRootCert)
+	}
+
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
